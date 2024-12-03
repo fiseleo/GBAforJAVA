@@ -10,7 +10,8 @@ import javafx.stage.Stage;
 import java.io.File;
 
 public class GBAMainApp extends Application {
-    ProcessRAM processRAM = new ProcessRAM();
+    private File selectedROM; // Store the selected ROM file
+
     @Override
     public void start(Stage primaryStage) {
         // Set window title
@@ -31,7 +32,9 @@ public class GBAMainApp extends Application {
         // Add other controls
         Label label = new Label("Welcome to GBA Emulator!");
         Button startButton = new Button("Start Game");
-        layout.getChildren().addAll(label, startButton);
+        TextArea outputArea = new TextArea(); // Display ROM details
+        outputArea.setEditable(false);
+        layout.getChildren().addAll(label, startButton, outputArea);
 
         // Set event listeners
         openItem.setOnAction(e -> {
@@ -43,17 +46,12 @@ public class GBAMainApp extends Application {
             );
 
             // Show the FileChooser and get the selected file
-            File selectedFile = fileChooser.showOpenDialog(primaryStage);
-            if (selectedFile != null) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("File Selected");
-                alert.setHeaderText(null);
-                processRAM.parseROM(selectedFile);
-                alert.setContentText("Selected ROM: " + selectedFile.getAbsolutePath());
-                alert.showAndWait();
-
-                // TODO: Load and process the selected ROM file here
-                System.out.println("Selected file: " + selectedFile.getAbsolutePath());
+            selectedROM = fileChooser.showOpenDialog(primaryStage);
+            if (selectedROM != null) {
+                outputArea.clear();
+                outputArea.appendText("Selected ROM: " + selectedROM.getName() + "\n");
+                outputArea.appendText("Path: " + selectedROM.getAbsolutePath() + "\n");
+                outputArea.appendText("Size: " + selectedROM.length() + " bytes\n");
             } else {
                 Alert alert = new Alert(Alert.AlertType.WARNING);
                 alert.setTitle("No File Selected");
@@ -64,11 +62,22 @@ public class GBAMainApp extends Application {
         });
 
         startButton.setOnAction(e -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Notice");
-            alert.setHeaderText(null);
-            alert.setContentText("Game started!");
-            alert.showAndWait();
+            if (selectedROM != null) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Game Starting");
+                alert.setHeaderText(null);
+                alert.setContentText("Starting game with " + selectedROM.getName());
+                alert.showAndWait();
+
+                // Start the emulator in a new thread
+                new Thread(() -> StartRAM.startEmulator(selectedROM)).start();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("No ROM Loaded");
+                alert.setHeaderText(null);
+                alert.setContentText("Please select a ROM file before starting the game.");
+                alert.showAndWait();
+            }
         });
 
         exitItem.setOnAction(e -> System.exit(0));
